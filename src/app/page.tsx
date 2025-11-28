@@ -1,65 +1,142 @@
-import Image from "next/image";
+"use client";
+
+import Link from "next/link";
+import { useMemo } from "react";
+import { useData } from "@/context/DataContext";
+
+const dashboardTiles = [
+  {
+    title: "Manage Products",
+    description: "Add, edit, or adjust inventory levels in seconds.",
+    href: "/inventory",
+    accent: "text-indigo-600 bg-indigo-50 border-indigo-100",
+  },
+  {
+    title: "Launch POS",
+    description: "Scan product codes, build carts, and complete sales.",
+    href: "/pos",
+    accent: "text-emerald-600 bg-emerald-50 border-emerald-100",
+  },
+];
 
 export default function Home() {
+  const { products, sales, dataReady } = useData();
+
+  const totals = useMemo(() => {
+    const inventoryValue = products.reduce(
+      (sum, product) => sum + product.price * product.stockQuantity,
+      0
+    );
+    const today = new Date().toISOString().slice(0, 10);
+    const todaysSales = sales.filter((sale) => sale.date.startsWith(today));
+    return {
+      totalProducts: products.length,
+      inventoryValue,
+      todaysRevenue: todaysSales.reduce(
+        (sum, sale) => sum + sale.totalAmount,
+        0
+      ),
+    };
+  }, [products, sales]);
+
+  if (!dataReady) {
+    return (
+      <div className="flex h-full items-center justify-center text-slate-500">
+        Loading POS data...
+      </div>
+    );
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <div className="space-y-8">
+      <section className="grid gap-4 sm:grid-cols-3">
+        <article className="card-surface">
+          <p className="text-sm font-medium text-slate-500">Products</p>
+          <p className="mt-2 text-3xl font-bold text-slate-900">
+            {totals.totalProducts}
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+          <p className="text-xs text-slate-500">
+            Active SKUs ready for sale today.
+          </p>
+        </article>
+        <article className="card-surface">
+          <p className="text-sm font-medium text-slate-500">Inventory Value</p>
+          <p className="mt-2 text-3xl font-bold text-slate-900">
+            ${totals.inventoryValue.toFixed(2)}
+          </p>
+          <p className="text-xs text-slate-500">
+            Based on current stock and pricing.
+          </p>
+        </article>
+        <article className="card-surface">
+          <p className="text-sm font-medium text-slate-500">Today&apos;s Sales</p>
+          <p className="mt-2 text-3xl font-bold text-emerald-600">
+            ${totals.todaysRevenue.toFixed(2)}
+          </p>
+          <p className="text-xs text-slate-500">Revenue collected so far.</p>
+        </article>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-2">
+        {dashboardTiles.map((tile) => (
+          <Link
+            key={tile.href}
+            href={tile.href}
+            className={`card-surface border-dashed ${tile.accent}`}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            <p className="pill border-current">{tile.title}</p>
+            <p className="mt-3 text-base text-slate-700">{tile.description}</p>
+            <p className="mt-6 text-sm font-semibold">Go to {tile.title} →</p>
+          </Link>
+        ))}
+      </section>
+
+      <section className="card-surface">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">
+              Recent Sales
+            </h2>
+            <p className="text-sm text-slate-500">
+              The latest completed transactions with totals.
+            </p>
+          </div>
+          <Link
+            href="/pos"
+            className="rounded-full bg-slate-900 px-4 py-1.5 text-sm font-semibold text-white hover:bg-slate-700"
           >
-            Documentation
-          </a>
+            Start Sale
+          </Link>
         </div>
-      </main>
+        <div className="mt-6 divide-y divide-slate-100">
+          {sales.length === 0 && (
+            <p className="py-4 text-sm text-slate-500">
+              No sales yet. Run your first transaction from the POS tab.
+            </p>
+          )}
+          {sales.slice(0, 5).map((sale) => (
+            <div
+              key={sale.id}
+              className="flex items-center justify-between py-3 text-sm"
+            >
+              <div>
+                <p className="font-semibold text-slate-800">
+                  Invoice #{sale.id.slice(-6).toUpperCase()}
+                </p>
+                <p className="text-xs text-slate-500">
+                  {new Date(sale.date).toLocaleString()}
+                </p>
+              </div>
+              <Link
+                href={`/invoice/${sale.id}`}
+                className="text-sm font-semibold text-indigo-600 hover:text-indigo-800"
+              >
+                ${sale.totalAmount.toFixed(2)}
+              </Link>
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }

@@ -1,36 +1,100 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Ziad POS System
+
+A comprehensive Point of Sale (POS) system for retail operations with inventory management, sales processing, and invoice generation.
+
+## Features
+
+- **Inventory Management**: Add, edit, and manage products with real-time stock tracking
+- **Point of Sale**: Quick product scanning, cart management, and transaction processing
+- **Invoice Generation**: Professional, printable invoices with company branding
+- **Stock Adjustments**: Add or deduct inventory quantities as needed
+- **Sales History**: Track all completed transactions with detailed records
 
 ## Getting Started
 
-First, run the development server:
+First, install the dependencies:
+
+```bash
+npm install
+```
+
+Then, run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the application.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Project Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `/inventory` - Product management and stock adjustment interface
+- `/pos` - Point of Sale transaction screen
+- `/invoice/[id]` - Individual invoice/receipt view
 
-## Learn More
+## Data Storage
 
-To learn more about Next.js, take a look at the following resources:
+The application uses browser localStorage for data persistence. All products and sales are stored locally in your browser.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Build for Production
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Web Application
 
-## Deploy on Vercel
+```bash
+npm run build
+npm start
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Desktop Application (Electron)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The application can be packaged as a standalone desktop application for Windows, macOS, and Linux.
+
+#### Development Mode (with Electron)
+
+Run the Next.js dev server and Electron together:
+
+```bash
+npm run electron:dev
+```
+
+#### Build Desktop Application
+
+**For Windows (.exe):**
+```bash
+npm run electron:build:win
+```
+
+**For macOS (.dmg):**
+```bash
+npm run electron:build:mac
+```
+
+**For Linux (AppImage):**
+```bash
+npm run electron:build:linux
+```
+
+**For all platforms:**
+```bash
+npm run electron:build
+```
+
+The built executable will be in the `dist` folder. You can double-click it to launch the Ziad POS System as a standalone desktop application.
+
+#### First Time Setup
+
+After installing dependencies, run:
+
+```bash
+npm run postinstall
+```
+
+This installs Electron's native dependencies.
+
+## Technologies
+
+- React 19
+- Next.js 16
+- TypeScript
+- Tailwind CSS 4
+- Electron (for desktop app)

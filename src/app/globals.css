@@ -1,26 +1,224 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    color-scheme: light;
+  }
+
+  body {
+    @apply bg-slate-50 text-slate-900;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer utilities {
+  .card-surface {
+    @apply rounded-2xl border border-slate-200 bg-white p-6 shadow-sm;
+  }
+
+  .pill {
+    @apply inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide;
+  }
+}
+
+/* Thermal Receipt Print Styles - 80mm width */
+@media print {
+  @page {
+    size: 80mm auto;
+    margin: 0;
+    padding: 0;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  body {
+    width: 80mm !important;
+    max-width: 80mm !important;
+    margin: 0 !important;
+    padding: 4mm !important;
+    background: white !important;
+    font-size: 10px !important;
+    line-height: 1.2 !important;
+  }
+
+  /* Hide everything except the invoice */
+  body > *:not(.thermal-receipt) {
+    display: none !important;
+  }
+
+  .thermal-receipt {
+    width: 80mm !important;
+    max-width: 80mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Logo styling for thermal */
+  .thermal-logo {
+    width: 100% !important;
+    max-width: 60mm !important;
+    height: auto !important;
+    margin: 0 auto 4mm !important;
+    display: block !important;
+  }
+
+  /* Header text */
+  .thermal-header {
+    text-align: center !important;
+    margin: 0 0 3mm 0 !important;
+    padding: 0 !important;
+  }
+
+  .thermal-header h1 {
+    font-size: 12px !important;
+    font-weight: bold !important;
+    margin: 0 0 1mm 0 !important;
+    padding: 0 !important;
+  }
+
+  .thermal-header p {
+    font-size: 8px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1.1 !important;
+  }
+
+  /* Invoice info */
+  .thermal-invoice-info {
+    text-align: center !important;
+    margin: 2mm 0 3mm 0 !important;
+    padding: 2mm 0 !important;
+    border-top: 1px dashed #000 !important;
+    border-bottom: 1px dashed #000 !important;
+  }
+
+  .thermal-invoice-info p {
+    font-size: 9px !important;
+    margin: 1mm 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Table styling for thermal */
+  .thermal-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin: 0 !important;
+    font-size: 9px !important;
+  }
+
+  .thermal-table thead {
+    display: table-header-group !important;
+  }
+
+  .thermal-table th {
+    padding: 1mm 0.5mm !important;
+    font-size: 8px !important;
+    font-weight: bold !important;
+    text-align: left !important;
+    border-bottom: 1px solid #000 !important;
+  }
+
+  .thermal-table td {
+    padding: 1mm 0.5mm !important;
+    font-size: 9px !important;
+    vertical-align: top !important;
+  }
+
+  .thermal-table tbody tr {
+    border-bottom: 1px dotted #666 !important;
+  }
+
+  /* Product code emphasis */
+  .thermal-product-code {
+    font-weight: bold !important;
+    font-size: 8px !important;
+    font-family: monospace !important;
+  }
+
+  /* Totals section */
+  .thermal-totals {
+    margin: 3mm 0 !important;
+    padding: 2mm 0 !important;
+    border-top: 1px solid #000 !important;
+  }
+
+  .thermal-totals-row {
+    display: flex !important;
+    justify-content: space-between !important;
+    margin: 1mm 0 !important;
+    padding: 0 !important;
+    font-size: 9px !important;
+  }
+
+  .thermal-grand-total {
+    border-top: 2px solid #000 !important;
+    border-bottom: 2px solid #000 !important;
+    padding: 2mm 0 !important;
+    margin: 2mm 0 !important;
+    font-size: 11px !important;
+    font-weight: bold !important;
+  }
+
+  /* Footer */
+  .thermal-footer {
+    text-align: center !important;
+    margin: 4mm 0 0 0 !important;
+    padding: 2mm 0 0 0 !important;
+    border-top: 1px dashed #000 !important;
+    font-size: 8px !important;
+  }
+
+  /* Ensure no page breaks */
+  .thermal-receipt,
+  .thermal-receipt * {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+}
+
+/* Hide Next.js watermark/icon - ULTRA AGGRESSIVE targeting */
+/* Remove ALL Next.js related elements - specifically target nextjs-portal */
+nextjs-portal,
+nextjs-portal[class*="dark"],
+nextjs-portal[style*="--nextjs-dev-tools"],
+a[href*="nextjs.org"],
+a[href*="vercel.com"],
+div[data-nextjs-toast],
+.__next_devtools,
+/* Target ANY element with fixed position at bottom-left - catch all variations */
+*[style*="position: fixed"][style*="bottom"],
+*[style*="position:fixed"][style*="bottom"],
+body > *[style*="position: fixed"][style*="bottom: 0"],
+body > *[style*="position:fixed"][style*="bottom:0"],
+body > *[style*="position: fixed"][style*="bottom"],
+body > *[style*="position:fixed"][style*="bottom"],
+body > *[style*="left: 0"][style*="position: fixed"][style*="bottom"],
+body > *[style*="left:0"][style*="position:fixed"][style*="bottom"],
+/* Target circular/bordered elements that might be the icon */
+*[style*="border-radius"][style*="position: fixed"][style*="bottom"],
+*[style*="border-radius"][style*="position:fixed"][style*="bottom"],
+/* Specifically hide fixed bottom-left elements */
+body > *:not(script):not(style):not(#__next)[style*="position: fixed"][style*="bottom"],
+body > *:not(script):not(style):not(#__next)[style*="position:fixed"][style*="bottom"],
+body > a[style*="position: fixed"][style*="bottom"],
+body > a[style*="position:fixed"][style*="bottom"],
+body > div[style*="position: fixed"][style*="bottom"],
+body > div[style*="position:fixed"][style*="bottom"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  height: 0 !important;
+  width: 0 !important;
+  overflow: hidden !important;
+  position: absolute !important;
+  left: -9999px !important;
+  top: -9999px !important;
+  z-index: -9999 !important;
 }
