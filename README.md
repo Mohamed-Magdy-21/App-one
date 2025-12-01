@@ -18,6 +18,18 @@ First, install the dependencies:
 npm install
 ```
 
+### Prepare local database (Prisma + SQLite)
+
+After dependencies are installed, initialize Prisma client and seed the database:
+
+```bash
+# Generate Prisma client and apply schema to SQLite file
+npm run prisma:db:push
+
+# Seed initial admin user and sample products
+npm run prisma:seed
+```
+
 Then, run the development server:
 
 ```bash

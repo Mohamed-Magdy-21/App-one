@@ -55,8 +55,6 @@ type DataContextValue = {
   dataReady: boolean;
 };
 
-const STORAGE_KEY = "pos-data-v1";
-
 const defaultProducts: Product[] = [
   {
     id: "sample-espresso",
@@ -93,128 +91,157 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [sales, setSales] = useState<Sale[]>([]);
   const [ready, setReady] = useState(false);
 
+  // On mount, fetch initial data from API server.
   useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
+    let mounted = true;
 
-    const hydrateState = (nextProducts: Product[], nextSales: Sale[]) => {
-      startTransition(() => {
-        setProducts(nextProducts);
-        setSales(nextSales);
-        setReady(true);
-      });
+    const fetchData = async () => {
+      try {
+        const [pRes, sRes] = await Promise.all([
+          fetch('/api/products'),
+          fetch('/api/sales'),
+        ]);
+
+        const [pJson, sJson] = await Promise.all([pRes.ok ? pRes.json() : null, sRes.ok ? sRes.json() : null]);
+
+        startTransition(() => {
+          if (!mounted) return;
+          setProducts(pJson && Array.isArray(pJson) && pJson.length ? pJson : defaultProducts);
+          setSales(sJson && Array.isArray(sJson) ? sJson : []);
+          setReady(true);
+        });
+      } catch (error) {
+        console.error('Failed to fetch initial data', error);
+        startTransition(() => {
+          if (!mounted) return;
+          setProducts(defaultProducts);
+          setSales([]);
+          setReady(true);
+        });
+      }
     };
 
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved) as {
-          products?: Product[];
-          sales?: Sale[];
-        };
-        hydrateState(
-          parsed.products?.length ? parsed.products : defaultProducts,
-          parsed.sales ?? []
-        );
-        return;
-      } catch (error) {
-        console.error("Failed to parse stored POS data", error);
-      }
-    }
+    fetchData();
 
-    hydrateState(defaultProducts, []);
+    return () => {
+      mounted = false;
+    };
   }, []);
-
-  useEffect(() => {
-    if (!ready || typeof window === "undefined") {
-      return;
-    }
-
-    const payload = JSON.stringify({ products, sales });
-    localStorage.setItem(STORAGE_KEY, payload);
-  }, [products, sales, ready]);
 
   const addProduct = useCallback(
     (product: Omit<Product, "id">) => {
-      const id = generateId();
-      setProducts((prev) => [...prev, { ...product, id }]);
-      return id;
+      // Optimistic add: generate temporary id, then POST to API
+      const tempId = generateId();
+      const temp = { ...product, id: tempId };
+      setProducts((prev) => [...prev, temp]);
+
+      (async () => {
+        try {
+          const res = await fetch('/api/products', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(product),
+          });
+          if (!res.ok) throw new Error('Failed to create product');
+          const created = await res.json();
+          // Replace temp item id with real id from server
+          setProducts((prev) => prev.map((p) => (p.id === tempId ? created : p)));
+        } catch (error) {
+          console.error('Add product failed', error);
+          // remove temp
+          setProducts((prev) => prev.filter((p) => p.id !== tempId));
+        }
+      })();
+
+      return tempId;
     },
     []
   );
 
   const updateProduct = useCallback(
     (id: string, updates: Partial<Omit<Product, "id">>) => {
-      setProducts((prev) =>
-        prev.map((product) =>
-          product.id === id ? { ...product, ...updates } : product
-        )
-      );
+      // Optimistic update locally, then send to API
+      setProducts((prev) => prev.map((product) => (product.id === id ? { ...product, ...updates } : product)));
+      (async () => {
+        try {
+          await fetch(`/api/products/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updates),
+          });
+        } catch (error) {
+          console.error('Update product failed', error);
+        }
+      })();
     },
     []
   );
 
   const adjustStock = useCallback((id: string, delta: number) => {
-    setProducts((prev) =>
-      prev.map((product) =>
-        product.id === id
-          ? {
-            ...product,
-            stockQuantity: Math.max(product.stockQuantity + delta, 0),
-          }
-          : product
-      )
-    );
+    // Optimistic stock adjust locally, persist via PUT
+    setProducts((prev) => prev.map((product) => (product.id === id ? { ...product, stockQuantity: Math.max(product.stockQuantity + delta, 0) } : product)));
+    (async () => {
+      try {
+        const prod = products.find((p) => p.id === id);
+        if (!prod) return;
+        const newQty = Math.max(prod.stockQuantity + delta, 0);
+        await fetch(`/api/products/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ stockQuantity: newQty }),
+        });
+      } catch (error) {
+        console.error('Adjust stock failed', error);
+      }
+    })();
   }, []);
 
   const deleteProduct = useCallback((id: string) => {
     setProducts((prev) => prev.filter((product) => product.id !== id));
+    (async () => {
+      try {
+        await fetch(`/api/products/${id}`, { method: 'DELETE' });
+      } catch (error) {
+        console.error('Delete product failed', error);
+      }
+    })();
   }, []);
 
   const recordSale = useCallback((sale: RecordSalePayload) => {
-    const id = generateId();
+    // Optimistic sale: create temporary id and push to state, then POST to API
+    const tempId = generateId();
     const payload: Sale = {
       ...sale,
-      id,
+      id: tempId,
       date: new Date().toISOString(),
     };
 
-    // Update state
-    setSales((prev) => {
-      const updated = [payload, ...prev];
+    setSales((prev) => [payload, ...prev]);
 
-      // Immediately save to localStorage to ensure data is available for navigation
-      if (typeof window !== "undefined" && ready) {
-        try {
-          const currentData = localStorage.getItem(STORAGE_KEY);
-          let currentProducts = products;
-
-          if (currentData) {
-            try {
-              const parsed = JSON.parse(currentData);
-              if (parsed.products?.length) {
-                currentProducts = parsed.products;
-              }
-            } catch (e) {
-              // Use current products state if parsing fails
-            }
-          }
-
-          const toSave = JSON.stringify({
-            products: currentProducts,
-            sales: updated,
-          });
-          localStorage.setItem(STORAGE_KEY, toSave);
-        } catch (error) {
-          console.error("Failed to save sale to localStorage", error);
+    (async () => {
+      try {
+        const res = await fetch('/api/sales', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(sale),
+        });
+        if (!res.ok) throw new Error('Failed to record sale');
+        const created = await res.json();
+        // replace temp sale with created
+        setSales((prev) => prev.map((s) => (s.id === tempId ? created : s)));
+        // Refresh products list to ensure stock quantities are fresh
+        const pRes = await fetch('/api/products');
+        if (pRes.ok) {
+          const pJson = await pRes.json();
+          setProducts(pJson);
         }
+      } catch (error) {
+        console.error('Record sale failed', error);
+        // Optionally remove temp sale on failure
       }
+    })();
 
-      return updated;
-    });
-
-    return id;
+    return tempId;
   }, [products, ready]);
 
   const value = useMemo<DataContextValue>(
