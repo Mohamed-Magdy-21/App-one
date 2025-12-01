@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
 import { Providers } from "./providers";
+import { auth } from "@/auth";
+import { SignOutButton } from "./sign-out-button";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -20,11 +22,14 @@ export const metadata: Metadata = {
     "Inventory management, POS, and instant invoices for retail operations.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await auth();
+  const userRole = (session?.user as any)?.role;
+
   return (
     <html lang="en">
       <body
@@ -44,26 +49,48 @@ export default function RootLayout({
                   Manage inventory, process sales, and print invoices faster.
                 </p>
               </div>
-              <nav className="flex flex-wrap gap-2 text-sm font-medium">
-                <Link
-                  className="rounded-full border border-slate-200 px-4 py-1.5 text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
-                  href="/"
-                >
-                  Overview
-                </Link>
-                <Link
-                  className="rounded-full border border-slate-200 px-4 py-1.5 text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
-                  href="/inventory"
-                >
-                  Inventory
-                </Link>
-                <Link
-                  className="rounded-full border border-slate-200 px-4 py-1.5 text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
-                  href="/pos"
-                >
-                  POS
-                </Link>
-              </nav>
+              <div className="flex flex-col gap-4">
+                <nav className="flex flex-wrap gap-2 text-sm font-medium">
+                  <Link
+                    className="rounded-full border border-slate-200 px-4 py-1.5 text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
+                    href="/"
+                  >
+                    Overview
+                  </Link>
+                  {userRole === "ADMIN" && (
+                    <Link
+                      className="rounded-full border border-slate-200 px-4 py-1.5 text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
+                      href="/inventory"
+                    >
+                      Inventory
+                    </Link>
+                  )}
+                  {(userRole === "ADMIN" || userRole === "CASHIER") && (
+                    <Link
+                      className="rounded-full border border-slate-200 px-4 py-1.5 text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
+                      href="/pos"
+                    >
+                      POS
+                    </Link>
+                  )}
+                  {userRole === "ADMIN" && (
+                    <Link
+                      className="rounded-full border border-slate-200 px-4 py-1.5 text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
+                      href="/users"
+                    >
+                      Users
+                    </Link>
+                  )}
+                </nav>
+                {session && (
+                  <div className="flex items-center gap-3 text-sm">
+                    <span className="text-slate-600">
+                      Welcome, <strong>{session.user?.name || session.user?.email}</strong> ({userRole})
+                    </span>
+                    <SignOutButton />
+                  </div>
+                )}
+              </div>
             </header>
             <main className="flex-1">{children}</main>
             <footer className="mt-12 border-t border-slate-200 pt-6 text-sm text-slate-500">
