@@ -68,15 +68,16 @@ export async function POST(req: Request) {
       include: { soldItems: true },
     });
 
-    // Adjust stock quantities for each product
-    for (const item of soldItems) {
-      // decrement by resolved product id (if normalized)
-      const idToUse = item.productId || (item.productCode ? (await prisma.product.findUnique({ where: { productCode: item.productCode } }))?.id : undefined);
-      if (idToUse) {
+    // Adjust stock quantities for each product using the validated normalized items
+    for (const item of normalizedItems) {
+      try {
         await prisma.product.update({
-          where: { id: idToUse },
+          where: { id: item.productId },
           data: { stockQuantity: { decrement: Number(item.quantity) } as any },
         });
+      } catch (err) {
+        // Log and continue if product was removed concurrently
+        console.error('Failed to decrement stock for product', item.productId, err);
       }
     }
 

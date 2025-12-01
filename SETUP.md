@@ -27,9 +27,15 @@ The app will be available at `http://localhost:3001` (or next available port if 
 
 After running the seed command, use these credentials to log in:
 
+**Admin User:**
 - **Username:** `admin`
-- **Password:** `admin123`
+- **Password:** `123`
 - **Role:** Administrator (full access)
+
+**Cashier User:**
+- **Username:** `cashier1`
+- **Password:** `123456`
+- **Role:** Cashier (POS access)
 
 ### Create Additional Users
 
@@ -61,16 +67,18 @@ This will generate new random passwords for all users (output in development mod
 ## Troubleshooting
 
 ### "Invoice not found" error
-- This happens when you navigate to an invoice before any sales have been recorded.
-- Create a sale first using the POS section, then the invoice will display.
+- **This is expected** when you navigate to an invoice before any sales have been recorded
+- **Fix:** 
+  1. Go to POS section (click "POS" in the header)
+  2. Select a product and add it to cart (e.g., search for "ESP" or "CAP")
+  3. Click "Complete Sale"
+  4. The invoice will automatically display and you can print it
+  5. Or find the invoice ID in the URL and navigate back to it
 
-### Database issues
-- Delete `prisma/dev.db` to reset the database
-- Re-run seed: `npm run prisma:seed`
-
-### Port already in use
-- The app automatically finds an available port (check terminal output)
-- Or kill the process on port 3000 and restart
+### Login shows "Invalid credentials"
+- Make sure you're using the exact credentials from above
+- Check that passwords match exactly (case-sensitive)
+- Try refreshing the page and logging in again
 
 ---
 

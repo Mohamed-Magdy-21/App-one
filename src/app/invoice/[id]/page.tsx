@@ -39,7 +39,7 @@ export default async function InvoicePage({ params }: Props) {
         </p>
         <div className="mt-4 flex flex-wrap gap-2 justify-center">
           <a
-            href={`/invoice/${sale.id}`}
+            href={`/invoice/${id}`}
             className="inline-flex items-center justify-center rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700"
           >
             Refresh Page
