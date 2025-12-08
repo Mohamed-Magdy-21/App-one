@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = "file:./dev.db"
+  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -21,7 +21,7 @@ model Product {
   id            String   @id @default(cuid())
   productCode   String   @unique
   name          String
-  price         Float
+  price         Decimal
   stockQuantity Int
   imageUrl      String?
   createdAt     DateTime @default(now())
@@ -32,9 +32,9 @@ model Product {
 model Sale {
   id          String     @id @default(cuid())
   date        DateTime   @default(now())
-  subtotal    Float
-  tax         Float
-  totalAmount Float
+  subtotal    Decimal
+  tax         Decimal
+  totalAmount Decimal
   soldItems   SoldItem[]
   createdAt   DateTime   @default(now())
 }
@@ -48,6 +48,6 @@ model SoldItem {
   productCode String
   name        String
   quantity    Int
-  price       Float
+  price       Decimal
   imageUrl    String?
 }

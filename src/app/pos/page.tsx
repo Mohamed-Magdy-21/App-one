@@ -9,7 +9,7 @@ type CartItem = {
   productId: string;
   productCode: string;
   name: string;
-  price: number;
+  price: string; // Price as string to match Product type
   quantity: number;
   imageUrl?: string;
 };
@@ -28,7 +28,7 @@ export default function PosPage() {
 
   const totals = useMemo(() => {
     const subtotal = cart.reduce(
-      (sum, item) => sum + item.price * item.quantity,
+      (sum, item) => sum + parseFloat(item.price) * item.quantity,
       0
     );
     const tax = subtotal * TAX_RATE;
@@ -153,7 +153,7 @@ export default function PosPage() {
     setCart((prev) => prev.filter((item) => item.productId !== productId));
   };
 
-  const completeSale = () => {
+  const completeSale = async () => {
     if (cart.length === 0) {
       setMessage("Add at least one item before completing the sale.");
       return;
@@ -171,28 +171,29 @@ export default function PosPage() {
     }
 
     cart.forEach((item) => adjustStock(item.productId, -item.quantity));
-    const saleId = recordSale({
-      soldItems: cart.map((item) => ({
-        productId: item.productId,
-        productCode: item.productCode,
-        name: item.name,
-        quantity: item.quantity,
-        price: item.price,
-        imageUrl: item.imageUrl,
-      })),
-      subtotal: totals.subtotal,
-      tax: totals.tax,
-      totalAmount: totals.total,
-    });
 
-    setCart([]);
-    setMessage("Sale completed successfully.");
+    try {
+      const saleId = await recordSale({
+        soldItems: cart.map((item) => ({
+          productId: item.productId,
+          productCode: item.productCode,
+          name: item.name,
+          quantity: item.quantity,
+          price: item.price,
+          imageUrl: item.imageUrl,
+        })),
+        subtotal: totals.subtotal,
+        tax: totals.tax,
+        totalAmount: totals.total,
+      });
 
-    // Wait for state to be saved to localStorage before navigating
-    // Use setTimeout to ensure React state updates and localStorage sync complete
-    setTimeout(() => {
+      setCart([]);
+      setMessage("Sale completed successfully.");
       router.push(`/invoice/${saleId}`);
-    }, 100);
+    } catch (error) {
+      console.error("Failed to complete sale", error);
+      setMessage("Failed to complete sale. Please try again.");
+    }
   };
 
   return (
@@ -339,7 +340,7 @@ export default function PosPage() {
                     </div>
                     <div className="w-full flex items-end justify-between mt-2">
                       <p className="text-lg font-bold text-slate-900">
-                        ${product.price.toFixed(2)}
+                        ${parseFloat(product.price).toFixed(2)}
                       </p>
                       <p
                         className={`text-xs font-medium px-2 py-1 rounded-full ${product.stockQuantity === 0
@@ -405,10 +406,10 @@ export default function PosPage() {
                     />
                   </td>
                   <td className="px-3 py-2.5 text-base text-slate-500">
-                    ${item.price.toFixed(2)}
+                    ${parseFloat(item.price).toFixed(2)}
                   </td>
                   <td className="px-3 py-2.5 text-base font-semibold text-slate-800">
-                    ${(item.price * item.quantity).toFixed(2)}
+                    ${(parseFloat(item.price) * item.quantity).toFixed(2)}
                   </td>
                   <td className="px-3 py-2.5 text-right">
                     <button

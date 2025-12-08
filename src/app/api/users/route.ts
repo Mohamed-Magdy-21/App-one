@@ -2,6 +2,8 @@ import prisma from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: Request) {
   // Admin-only
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });

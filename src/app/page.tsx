@@ -24,7 +24,7 @@ export default function Home() {
 
   const totals = useMemo(() => {
     const inventoryValue = products.reduce(
-      (sum, product) => sum + product.price * product.stockQuantity,
+      (sum, product) => sum + parseFloat(product.price) * product.stockQuantity,
       0
     );
     const today = new Date().toISOString().slice(0, 10);
@@ -33,7 +33,7 @@ export default function Home() {
       totalProducts: products.length,
       inventoryValue,
       todaysRevenue: todaysSales.reduce(
-        (sum, sale) => sum + sale.totalAmount,
+        (sum, sale) => sum + parseFloat(sale.totalAmount),
         0
       ),
     };
@@ -131,7 +131,7 @@ export default function Home() {
                 href={`/invoice/${sale.id}`}
                 className="text-sm font-semibold text-indigo-600 hover:text-indigo-800"
               >
-                ${sale.totalAmount.toFixed(2)}
+                ${parseFloat(sale.totalAmount).toFixed(2)}
               </Link>
             </div>
           ))}

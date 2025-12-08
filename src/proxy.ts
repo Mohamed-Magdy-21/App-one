@@ -9,7 +9,7 @@ const PUBLIC_PATHS = [
   '/favicon.ico',
 ];
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // Allow static, _next and public files
@@ -33,20 +33,34 @@ export async function middleware(req: NextRequest) {
 
   const role = (token as any).role;
 
-  // RBAC: only ADMIN can access inventory and users pages
-  if (pathname.startsWith('/inventory') || pathname.startsWith('/users') || pathname.startsWith('/api/users')) {
-    if (role !== 'ADMIN') {
-      const posUrl = new URL('/pos', req.url);
-      return NextResponse.redirect(posUrl);
+  // RBAC for CASHIER: Restrict to POS and invoice routes only
+  if (role === 'CASHIER') {
+    // Allow POS and invoice pages
+    if (pathname.startsWith('/pos') || pathname.startsWith('/invoice')) {
+      return NextResponse.next();
     }
+
+    // Allow read-only product API (needed for POS)
+    if (pathname === '/api/products' && req.method === 'GET') {
+      return NextResponse.next();
+    }
+
+    // Allow sales API (needed for POS)
+    if (pathname.startsWith('/api/sales')) {
+      return NextResponse.next();
+    }
+
+    // Block everything else for Cashiers - redirect to POS
+    const posUrl = new URL('/pos', req.url);
+    return NextResponse.redirect(posUrl);
   }
 
-  // Cashiers can access POS routes and invoice routes
-  if (pathname.startsWith('/pos') || pathname.startsWith('/invoice') || pathname.startsWith('/api/products') || pathname.startsWith('/api/sales')) {
-    // all authenticated users can access POS, invoice and product/sale APIs
+  // RBAC for ADMIN: Full access to all routes
+  if (role === 'ADMIN') {
     return NextResponse.next();
   }
 
+  // Default: allow access for authenticated users
   return NextResponse.next();
 }
 

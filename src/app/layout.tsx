@@ -51,12 +51,14 @@ export default async function RootLayout({
               </div>
               <div className="flex flex-col gap-4">
                 <nav className="flex flex-wrap gap-2 text-sm font-medium">
-                  <Link
-                    className="rounded-full border border-slate-200 px-4 py-1.5 text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
-                    href="/"
-                  >
-                    Overview
-                  </Link>
+                  {userRole === "ADMIN" && (
+                    <Link
+                      className="rounded-full border border-slate-200 px-4 py-1.5 text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
+                      href="/"
+                    >
+                      Overview
+                    </Link>
+                  )}
                   {userRole === "ADMIN" && (
                     <Link
                       className="rounded-full border border-slate-200 px-4 py-1.5 text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"

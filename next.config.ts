@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
     dangerouslyAllowSVG: true,
     unoptimized: false,
   },
+  serverExternalPackages: ['@prisma/client', 'prisma'],
   /* config options here */
 };
 

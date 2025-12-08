@@ -3,7 +3,6 @@
 import { FormEvent, useMemo, useState, useRef } from "react";
 import Image from "next/image";
 import { Product, useData } from "@/context/DataContext";
-import { processImageFile } from "@/lib/imageUtils";
 
 type ProductForm = {
   productCode: string;
@@ -44,7 +43,7 @@ export default function InventoryPage() {
   const totalInventoryValue = useMemo(
     () =>
       products.reduce(
-        (sum, product) => sum + product.price * product.stockQuantity,
+        (sum, product) => sum + parseFloat(product.price) * product.stockQuantity,
         0
       ),
     [products]
@@ -85,7 +84,7 @@ export default function InventoryPage() {
     const payload = {
       productCode: form.productCode.trim(),
       name: form.name.trim(),
-      price: parsedPrice,
+      price: parsedPrice.toFixed(2), // Convert to string with 2 decimal places
       stockQuantity: parsedQuantity,
       imageUrl: form.imageUrl || undefined,
     };
@@ -134,9 +133,36 @@ export default function InventoryPage() {
     setFeedback(null);
 
     try {
-      const base64 = await processImageFile(file);
-      setForm((prev) => ({ ...prev, imageUrl: base64 }));
-      setImagePreview(base64);
+      // Validate file
+      const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
+      const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        throw new Error('Invalid file type. Please use JPG, PNG, or WebP images.');
+      }
+
+      if (file.size > MAX_FILE_SIZE) {
+        throw new Error(`File too large. Maximum size is ${MAX_FILE_SIZE / 1024 / 1024}MB.`);
+      }
+
+      // Upload file to server
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+        cache: 'no-store',
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Failed to upload image');
+      }
+
+      const { url } = await res.json();
+      setForm((prev) => ({ ...prev, imageUrl: url }));
+      setImagePreview(url);
       setFeedback("Image uploaded successfully.");
     } catch (error) {
       setFeedback(
@@ -526,7 +552,7 @@ export default function InventoryPage() {
                     {product.productCode}
                   </td>
                   <td className="px-3 py-2.5 text-base text-slate-500">
-                    ${product.price.toFixed(2)}
+                    ${parseFloat(product.price).toFixed(2)}
                   </td>
                   <td className="px-3 py-2.5 text-base font-medium text-slate-700">
                     {product.stockQuantity}

@@ -72,9 +72,18 @@ export default async function InvoicePage({ params }: Props) {
 
   const readableDate = sale.date ? new Date(sale.date).toLocaleString() : new Date().toLocaleString();
   const invoiceNumber = sale.id && sale.id.length >= 6 ? sale.id.slice(-6).toUpperCase() : sale.id?.toUpperCase() || "INVOICE";
-  const subtotal = typeof sale.subtotal === "number" ? sale.subtotal : 0;
-  const tax = typeof sale.tax === "number" ? sale.tax : 0;
-  const totalAmount = typeof sale.totalAmount === "number" ? sale.totalAmount : subtotal + tax;
+
+  // Handle Prisma Decimal objects - they have a toNumber() method
+  const getNumericValue = (value: any): number => {
+    if (typeof value === 'number') return value;
+    if (typeof value === 'string') return parseFloat(value);
+    if (value && typeof value.toNumber === 'function') return value.toNumber();
+    return 0;
+  };
+
+  const subtotal = getNumericValue(sale.subtotal);
+  const tax = getNumericValue(sale.tax);
+  const totalAmount = getNumericValue(sale.totalAmount);
 
   return (
     <div className="space-y-6 flex flex-col items-center">
@@ -103,15 +112,18 @@ export default async function InvoicePage({ params }: Props) {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 print:divide-slate-200">
-              {sale.soldItems.map((item) => (
-                <tr key={item.id}>
-                  <td className="py-1 text-left font-mono text-[10px] text-slate-500 print:text-[9px]">{item.productCode}</td>
-                  <td className="py-1 text-left font-medium text-slate-900 print:text-[10px]">{item.name}</td>
-                  <td className="py-1 text-center text-slate-600 print:text-[10px]">{item.quantity}</td>
-                  <td className="py-1 text-right text-slate-600 print:text-[10px]">${item.price.toFixed(2)}</td>
-                  <td className="py-1 text-right font-semibold text-slate-900 print:text-[10px]">${(item.price * item.quantity).toFixed(2)}</td>
-                </tr>
-              ))}
+              {sale.soldItems.map((item: { id: string; productCode: string; name: string; quantity: number; price: any }) => {
+                const itemPrice = getNumericValue(item.price);
+                return (
+                  <tr key={item.id}>
+                    <td className="py-1 text-left font-mono text-[10px] text-slate-500 print:text-[9px]">{item.productCode}</td>
+                    <td className="py-1 text-left font-medium text-slate-900 print:text-[10px]">{item.name}</td>
+                    <td className="py-1 text-center text-slate-600 print:text-[10px]">{item.quantity}</td>
+                    <td className="py-1 text-right text-slate-600 print:text-[10px]">${itemPrice.toFixed(2)}</td>
+                    <td className="py-1 text-right font-semibold text-slate-900 print:text-[10px]">${(itemPrice * item.quantity).toFixed(2)}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </section>

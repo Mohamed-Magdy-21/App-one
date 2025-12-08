@@ -14,9 +14,9 @@ export type Product = {
   id: string;
   productCode: string;
   name: string;
-  price: number;
+  price: string; // Decimal serialized as string
   stockQuantity: number;
-  imageUrl?: string; // Base64 encoded image data URI
+  imageUrl?: string; // URL path to uploaded image
 };
 
 export type SoldItem = {
@@ -24,16 +24,16 @@ export type SoldItem = {
   productCode: string;
   name: string;
   quantity: number;
-  price: number;
-  imageUrl?: string; // Base64 encoded image data URI
+  price: string; // Decimal serialized as string
+  imageUrl?: string; // URL path to uploaded image
 };
 
 export type Sale = {
   id: string;
   date: string;
-  subtotal: number;
-  tax: number;
-  totalAmount: number;
+  subtotal: string; // Decimal serialized as string
+  tax: string; // Decimal serialized as string
+  totalAmount: string; // Decimal serialized as string
   soldItems: SoldItem[];
 };
 
@@ -51,33 +51,11 @@ type DataContextValue = {
   updateProduct: (id: string, updates: Partial<Omit<Product, "id">>) => void;
   deleteProduct: (id: string) => void;
   adjustStock: (id: string, delta: number) => void;
-  recordSale: (payload: RecordSalePayload) => string;
+  recordSale: (payload: RecordSalePayload) => Promise<string>;
   dataReady: boolean;
 };
 
-const defaultProducts: Product[] = [
-  {
-    id: "sample-espresso",
-    productCode: "ESP-1001",
-    name: "Espresso Shot",
-    price: 3.0,
-    stockQuantity: 30,
-  },
-  {
-    id: "sample-cappuccino",
-    productCode: "CAP-2002",
-    name: "Cappuccino",
-    price: 4.5,
-    stockQuantity: 24,
-  },
-  {
-    id: "sample-bagel",
-    productCode: "BG-3003",
-    name: "Fresh Bagel",
-    price: 2.25,
-    stockQuantity: 50,
-  },
-];
+const defaultProducts: Product[] = [];
 
 const DataContext = createContext<DataContextValue | undefined>(undefined);
 
@@ -98,8 +76,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const fetchData = async () => {
       try {
         const [pRes, sRes] = await Promise.all([
-          fetch('/api/products'),
-          fetch('/api/sales'),
+          fetch('/api/products', { cache: 'no-store', next: { revalidate: 0 } }),
+          fetch('/api/sales', { cache: 'no-store', next: { revalidate: 0 } }),
         ]);
 
         const [pJson, sJson] = await Promise.all([pRes.ok ? pRes.json() : null, sRes.ok ? sRes.json() : null]);
@@ -141,6 +119,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(product),
+            cache: 'no-store',
           });
           if (!res.ok) throw new Error('Failed to create product');
           const created = await res.json();
@@ -168,6 +147,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(updates),
+            cache: 'no-store',
           });
         } catch (error) {
           console.error('Update product failed', error);
@@ -189,6 +169,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ stockQuantity: newQty }),
+          cache: 'no-store',
         });
       } catch (error) {
         console.error('Adjust stock failed', error);
@@ -200,48 +181,51 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setProducts((prev) => prev.filter((product) => product.id !== id));
     (async () => {
       try {
-        await fetch(`/api/products/${id}`, { method: 'DELETE' });
+        await fetch(`/api/products/${id}`, { method: 'DELETE', cache: 'no-store' });
       } catch (error) {
         console.error('Delete product failed', error);
       }
     })();
   }, []);
 
-  const recordSale = useCallback((sale: RecordSalePayload) => {
+  const recordSale = useCallback(async (sale: RecordSalePayload) => {
     // Optimistic sale: create temporary id and push to state, then POST to API
     const tempId = generateId();
     const payload: Sale = {
       ...sale,
       id: tempId,
       date: new Date().toISOString(),
+      subtotal: sale.subtotal.toString(),
+      tax: sale.tax.toString(),
+      totalAmount: sale.totalAmount.toString(),
     };
 
     setSales((prev) => [payload, ...prev]);
 
-    (async () => {
-      try {
-        const res = await fetch('/api/sales', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(sale),
-        });
-        if (!res.ok) throw new Error('Failed to record sale');
-        const created = await res.json();
-        // replace temp sale with created
-        setSales((prev) => prev.map((s) => (s.id === tempId ? created : s)));
-        // Refresh products list to ensure stock quantities are fresh
-        const pRes = await fetch('/api/products');
-        if (pRes.ok) {
-          const pJson = await pRes.json();
-          setProducts(pJson);
-        }
-      } catch (error) {
-        console.error('Record sale failed', error);
-        // Optionally remove temp sale on failure
+    try {
+      const res = await fetch('/api/sales', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sale),
+        cache: 'no-store',
+      });
+      if (!res.ok) throw new Error('Failed to record sale');
+      const created = await res.json();
+      // replace temp sale with created
+      setSales((prev) => prev.map((s) => (s.id === tempId ? created : s)));
+      // Refresh products list to ensure stock quantities are fresh
+      const pRes = await fetch('/api/products', { cache: 'no-store', next: { revalidate: 0 } });
+      if (pRes.ok) {
+        const pJson = await pRes.json();
+        setProducts(pJson);
       }
-    })();
-
-    return tempId;
+      return created.id;
+    } catch (error) {
+      console.error('Record sale failed', error);
+      // Optionally remove temp sale on failure
+      setSales((prev) => prev.filter((s) => s.id !== tempId));
+      throw error;
+    }
   }, [products, ready]);
 
   const value = useMemo<DataContextValue>(

@@ -1,10 +1,24 @@
 import prisma from '@/lib/prisma';
 import { NextResponse } from 'next/server';
+import { Decimal } from 'decimal.js';
+
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
     const sales = await prisma.sale.findMany({ include: { soldItems: true }, orderBy: { date: 'desc' } });
-    return NextResponse.json(sales);
+    // Serialize Decimal fields to strings
+    const serialized = sales.map((sale: { id: string; date: Date; subtotal: any; tax: any; totalAmount: any; createdAt: Date; soldItems: any[] }) => ({
+      ...sale,
+      subtotal: sale.subtotal.toString(),
+      tax: sale.tax.toString(),
+      totalAmount: sale.totalAmount.toString(),
+      soldItems: sale.soldItems.map((item: { id: string; saleId: string; productId: string; productCode: string; name: string; quantity: number; price: any; imageUrl: string | null }) => ({
+        ...item,
+        price: item.price.toString(),
+      })),
+    }));
+    return NextResponse.json(serialized);
   } catch (error) {
     console.error('Fetch sales error', error);
     return NextResponse.json([], { status: 200 });
@@ -46,17 +60,17 @@ export async function POST(req: Request) {
         productCode: s.productCode,
         name: s.name,
         quantity: Number(s.quantity),
-        price: Number(s.price),
+        price: new Decimal(s.price),
       });
     }
 
     const sale = await prisma.sale.create({
       data: {
-        subtotal: Number(subtotal),
-        tax: Number(tax),
-        totalAmount: Number(totalAmount),
+        subtotal: new Decimal(subtotal),
+        tax: new Decimal(tax),
+        totalAmount: new Decimal(totalAmount),
         soldItems: {
-          create: normalizedItems.map((s) => ({
+          create: normalizedItems.map((s: { productId: string; productCode: string; name: string; quantity: number; price: any }) => ({
             productId: s.productId,
             productCode: s.productCode,
             name: s.name,
@@ -81,7 +95,19 @@ export async function POST(req: Request) {
       }
     }
 
-    return NextResponse.json(sale, { status: 201 });
+    // Serialize Decimal fields to strings
+    const serialized = {
+      ...sale,
+      subtotal: sale.subtotal.toString(),
+      tax: sale.tax.toString(),
+      totalAmount: sale.totalAmount.toString(),
+      soldItems: sale.soldItems.map((item: { id: string; saleId: string; productId: string; productCode: string; name: string; quantity: number; price: any; imageUrl: string | null }) => ({
+        ...item,
+        price: item.price.toString(),
+      })),
+    };
+
+    return NextResponse.json(serialized, { status: 201 });
   } catch (error) {
     console.error('Record sale error', error);
     return NextResponse.json({ error: 'Failed to record sale' }, { status: 500 });
