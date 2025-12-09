@@ -11,13 +11,8 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ['@prisma/client', 'prisma'],
   experimental: {
     serverActions: {
-      allowedOrigins: ['app-one-production.up.railway.app', 'localhost:3000'],
+      allowedOrigins: ['localhost:3000'], // Add your production domain in the list when known
     },
-    // @ts-expect-error allowedDevOrigins is a valid Next.js config but types might be outdated
-    allowedDevOrigins: [
-      'https://app-one-production.up.railway.app',
-      'http://app-one-production.up.railway.app',
-    ],
   },
   /* config options here */
 };
