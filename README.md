@@ -18,16 +18,19 @@ First, install the dependencies:
 npm install
 ```
 
-### Prepare local database (Prisma + SQLite)
+### Setup Database
 
-After dependencies are installed, initialize Prisma client and seed the database:
+After installing dependencies and configuring your `.env` file with `DATABASE_URL`:
 
 ```bash
-# Generate Prisma client and apply schema to SQLite file
-npm run prisma:db:push
+# Generate Prisma client
+npx prisma generate
 
-# Seed initial admin user and sample products
-npm run prisma:seed
+# Push schema to database
+npx prisma db push
+
+# Create admin user
+node reset-admin.js
 ```
 
 Then, run the development server:
@@ -44,9 +47,24 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 - `/pos` - Point of Sale transaction screen
 - `/invoice/[id]` - Individual invoice/receipt view
 
-## Data Storage
+## Database
 
-The application uses browser localStorage for data persistence. All products and sales are stored locally in your browser.
+The application uses **Neon PostgreSQL** for data persistence, making it compatible with serverless deployments.
+
+### First-Time Setup
+
+1. Create a Neon account at [console.neon.tech](https://console.neon.tech/)
+2. Create a new project and copy the connection string
+3. Update `.env` with your `DATABASE_URL`
+4. Run database setup:
+
+```bash
+npx prisma generate
+npx prisma db push
+node reset-admin.js
+```
+
+**See [QUICK_FIX.md](./QUICK_FIX.md) for detailed setup instructions.**
 
 ## Build for Production
 

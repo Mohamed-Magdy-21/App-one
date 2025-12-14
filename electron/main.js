@@ -34,10 +34,12 @@ function createWindow() {
     ? `http://localhost:${PORT}` 
     : `http://localhost:${PORT}`;
 
-  mainWindow.loadURL(url);
+  console.log(`Loading URL: ${url}`);
+  mainWindow.loadURL(url).catch(e => console.error('Failed to load URL:', e));
 
   // Show window when ready to prevent visual flash
   mainWindow.once('ready-to-show', () => {
+    console.log('Window ready to show');
     if (mainWindow) {
       mainWindow.show();
       
@@ -67,15 +69,18 @@ function startNextServer() {
       // Wait for it to be ready
       let attempts = 0;
       const maxAttempts = 60; // 30 seconds max wait
-      const checkServer = setInterval(() => {
-        attempts++;
-        const req = http.get(`http://localhost:${PORT}`, (res) => {
-          if (res.statusCode === 200 || res.statusCode === 404) {
-            clearInterval(checkServer);
-            resolve();
-          }
+        const checkServer = setInterval(() => {
+          attempts++;
+          const req = http.get(`http://localhost:${PORT}`, (res) => {
+            console.log(`Attempt ${attempts}: status ${res.statusCode}`);
+            if (res.statusCode) {
+              console.log('Next.js server is ready!');
+              clearInterval(checkServer);
+              resolve();
+            }
         });
-        req.on('error', () => {
+        req.on('error', (e) => {
+          console.log(`Attempt ${attempts}: error ${e.message}`);
           // Server not ready yet, continue waiting
           if (attempts >= maxAttempts) {
             clearInterval(checkServer);
@@ -149,8 +154,11 @@ function startNextServer() {
 
 // This method will be called when Electron has finished initialization
 app.whenReady().then(async () => {
+  console.log('App is ready');
   try {
+    console.log('Starting Next.js server check...');
     await startNextServer();
+    console.log('Next.js server check passed. Creating window...');
     createWindow();
 
     app.on('activate', () => {

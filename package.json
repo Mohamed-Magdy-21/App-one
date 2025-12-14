@@ -1,12 +1,13 @@
 {
   "name": "ziad-pos-system",
   "version": "0.1.0",
+  "main": "electron/main.js",
   "private": true,
   "author": "Mohamed Magdy",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "node .next/standalone/server.js",
+    "start": "electron .",
     "lint": "eslint",
     "postinstall": "prisma generate",
     "prisma:generate": "prisma generate",
@@ -28,10 +29,11 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "electron": "^39.2.6",
     "eslint": "^9",
     "eslint-config-next": "16.0.5",
     "prisma": "^5.22.0",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "5.9.3"
   }
 }

@@ -1,27 +1,20 @@
 # Deployment Guide
 
-This project is built with **Next.js**.
+This project is built with **Next.js** and uses **Neon PostgreSQL** for the database.
 
-> [!CAUTION]
-> **Database Warning**: The project is currently configured with **SQLite** (`file:./dev.db`).
-> Platforms like **Vercel** and **Netlify** rely on ephemeral file systems. This means any data written to SQLite will be **LOST** when the server sleeps or redeploys.
-> **Action Required**: For production, you MUST switch to a persistent Cloud Database (PostgreSQL or MySQL).
+## 1. Prerequisites
 
-## 1. Prerequisites (Cloud Database)
+### Database Setup
 
-Before deploying, set up a database:
-1.  **Create a Database**: Use a provider like [Neon](https://neon.tech/) (Postgres), [Supabase](https://supabase.com/) (Postgres), or [PlanetScale](https://planetscale.com/) (MySQL).
-2.  **Get Connection String**: Copy the connection URL (e.g., `postgres://user:pass@host/db`).
-3.  **Update Config**:
-    - Update `prisma/schema.prisma`:
-      ```prisma
-      datasource db {
-        provider = "postgresql" // or "mysql"
-        url      = env("DATABASE_URL")
-      }
-      ```
-    - Run `npx prisma generate` locally.
-    - Commit these changes.
+The project is configured to use **Neon PostgreSQL** (serverless-compatible).
+
+If you haven't set up your database yet, follow the [MIGRATION_GUIDE.md](./MIGRATION_GUIDE.md) for complete instructions.
+
+**Quick Setup:**
+1. Create account at [Neon](https://console.neon.tech/)
+2. Create a new project
+3. Copy your connection string
+4. Update environment variables (see below)
 
 ## 2. GitHub Setup
 
@@ -44,11 +37,16 @@ Before deploying, set up a database:
 1.  Go to [Vercel](https://vercel.com) and "Add New Project".
 2.  Import your GitHub repository.
 3.  **Environment Variables**: Add the following in the Vercel dashboard:
-    - `DATABASE_URL`: Your cloud database connection string.
-    - `NEXTAUTH_SECRET`: Generate one using `openssl rand -base64 32`.
-    - `NEXTAUTH_URL`: Your Vercel domain (e.g., `https://your-app.vercel.app`).
+    - `DATABASE_URL`: Your Neon PostgreSQL connection string (e.g., `postgresql://user:pass@ep-xxx.region.aws.neon.tech/dbname?sslmode=require`)
+    - `NEXTAUTH_SECRET`: Generate one using `openssl rand -base64 32`
+    - `NEXTAUTH_URL`: Your Vercel domain (e.g., `https://your-app.vercel.app`)
+    - `AUTH_ALLOWED_HOSTS`: Same as `NEXTAUTH_URL`
+    - `AUTH_TRUST_HOST`: `true`
 4.  **Deploy**: Click Deploy.
-5.  **Post-Deploy**: The `postinstall` script in `package.json` will automatically run `prisma generate`.
+5.  **Post-Deploy**: 
+    - The `postinstall` script in `package.json` will automatically run `prisma generate`.
+    - Database tables are created automatically on first connection.
+    - Create admin user using Prisma Studio or the reset-admin script.
 
 ## 4. Deployment (Netlify)
 

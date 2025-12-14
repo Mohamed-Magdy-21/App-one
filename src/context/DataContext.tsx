@@ -1,5 +1,6 @@
 "use client";
 
+import { useSession } from "next-auth/react";
 import {
   createContext,
   startTransition,
@@ -69,8 +70,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [sales, setSales] = useState<Sale[]>([]);
   const [ready, setReady] = useState(false);
 
-  // On mount, fetch initial data from API server.
+  const { status } = useSession();
+
+  // On mount or auth change, fetch initial data from API server.
   useEffect(() => {
+    if (status !== "authenticated") return;
+
     let mounted = true;
 
     const fetchData = async () => {
@@ -104,7 +109,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [status]);
 
   const addProduct = useCallback(
     (product: Omit<Product, "id">) => {
